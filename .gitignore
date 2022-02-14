@@ -30,3 +30,6 @@ package-lock.json
 
 # flask files
 .flaskenv
+
+# audio files
+*.mp3
