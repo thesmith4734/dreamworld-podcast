@@ -1,5 +1,8 @@
 from pydub import AudioSegment
+from os import environ
 import random
+import boto3
+import io
 from time import perf_counter
 from mutagen.mp3 import MP3
 
@@ -27,14 +30,49 @@ def mixAmbiance(narration_audio, ambiance_path, start_padding=5000, end_padding=
     return(mixed_audio)
 
 
+def getAudioFile(filename):
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
+        aws_secret_access_key = environ.get('AWS_S3_SECRET_ACCESS_KEY'),
+        region_name = 'us-west-2')
 
+    ### Get file as object
+    audio_file = s3.get_object(
+        Bucket='dreamworld-podcasts',
+        Key=f'test-cast/{filename}')
+
+    ### Convert s3 object to Pydub file
+    s3_obj_data = io.BytesIO(audio_file["Body"].read())
+    return(AudioSegment.from_file(s3_obj_data))
+
+
+def createAudioFile(audioSegments, filepath, cf):
+    combined_audio = audioSegments[0]
+    for audioSegment in audioSegments[1:]:
+        combined_audio = combined_audio.append(audioSegment, crossfade=cf)
+    return(combined_audio.export(filepath, format="mp3"))
+
+
+def testConfiguration():
+    print(environ.get('AWS_S3_KEY_ID'))
+    print(environ.get('AWS_S3_SECRET_ACCESS_KEY'))
+    return()
+
+
+### test = getAudioFile("Test_Outro.mp3")
+### print(environ.get('AWS_S3_KEY_ID'))
+### print(environ.get('AWS_S3_SECRET_ACCESS_KEY'))
+
+'''
 time1 = perf_counter()
 ambiance_file = "./assets/sleepcasts/Test_Ambiance.mp3"
-outro_sample = AudioSegment.from_mp3("./assets/sleepcasts/Test_Outro.mp3")
-intro_sample = AudioSegment.from_mp3("./assets/sleepcasts/Test_Intro.mp3")
-expo_sample = AudioSegment.from_mp3("./assets/sleepcasts/Test_Expo.mp3")
+outro_sample =  getAudioFile("Test_Outro.mp3")
+intro_sample = getAudioFile("Test_Intro.mp3")
+expo_sample = getAudioFile("Test_Expo.mp3")
 time2 = perf_counter()
-print(f"time to load narration:\t\t {time2 - time1}")
+print(f"time to load s3 narration:\t\t {time2 - time1}")
+
 
 time1 = perf_counter()
 mixed_intro = mixAmbiance(intro_sample, ambiance_file)
@@ -44,8 +82,7 @@ time2 = perf_counter()
 print(f"time to add ambiance:\t\t {time2 - time1}")
 
 time1 = perf_counter()
-combined_audio = mixed_intro.append(mixed_expo, crossfade=3000)
-combined_audio = combined_audio.append(mixed_outro, crossfade=3000)
-file_handle = combined_audio.export("./assets/sleepcasts/test_output.mp3", format="mp3")
+createAudioFile([intro_sample, expo_sample, outro_sample], "./assets/sleepcasts/test_output.mp3", 3000)
 time2 = perf_counter()
 print(f"time to append files:\t\t {time2 - time1}")
+'''
