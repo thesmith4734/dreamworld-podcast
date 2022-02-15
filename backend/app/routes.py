@@ -5,7 +5,7 @@ import os
 from flask import jsonify, request
 from flask_marshmallow import Marshmallow
 from app.models import Podcast, PodcastSchema
-from app.audio import getAudioFile
+from app.audio import getAudioFile, buildPodcast
 
 ### Test Config access
 @app.route('/testconfig')
@@ -92,13 +92,8 @@ def deletePodcast(id):
 def assemblePodcast(id):
     podcast = Podcast.query.get(id)
 
-    ### fetch podcast audio from s3
+    ### Call assembler with specified podcast
+    finished_audio = buildPodcast('desert-night', 5, app.config['SLEEPCAST_DIRECTORY'])
 
-
-    
-    filename = 'test_output.mp3'
-    return send_from_directory(app.config['SLEEPCAST_DIRECTORY'], filename, conditional=True)
-
-    ### Call the assembler with specified podcast
-
-    ### Return a full podcast file to user
+    # Return finished audio
+    return send_from_directory(app.config['SLEEPCAST_DIRECTORY'], finished_audio, conditional=True)
