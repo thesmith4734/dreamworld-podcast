@@ -1,5 +1,5 @@
 from pydub import AudioSegment
-from os import environ
+from os import environ, path
 import random
 import boto3
 import io
@@ -30,7 +30,8 @@ def mixAmbiance(narration_audio, ambiance_path, start_padding=5000, end_padding=
     return(mixed_audio)
 
 
-def getAudioFile(filename):
+### Retrieve an mp3 file from S3 and return it as an AudioSegment
+def getAudioFile(podcast, filename):
     s3 = boto3.client(
         's3',
         aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
@@ -40,13 +41,13 @@ def getAudioFile(filename):
     ### Get file as object
     audio_file = s3.get_object(
         Bucket='dreamworld-podcasts',
-        Key=f'test-cast/{filename}')
+        Key=f'{podcast}/{filename}')
 
     ### Convert s3 object to Pydub file
     s3_obj_data = io.BytesIO(audio_file["Body"].read())
     return(AudioSegment.from_file(s3_obj_data))
 
-
+### Given an ordered list of audtio segments, append them with some amount of crossfade
 def createAudioFile(audioSegments, filepath, cf):
     combined_audio = audioSegments[0]
     for audioSegment in audioSegments[1:]:
@@ -59,10 +60,29 @@ def testConfiguration():
     print(environ.get('AWS_S3_SECRET_ACCESS_KEY'))
     return()
 
+def buildPodcast(podcast, length, directory):
 
-### test = getAudioFile("Test_Outro.mp3")
-### print(environ.get('AWS_S3_KEY_ID'))
-### print(environ.get('AWS_S3_SECRET_ACCESS_KEY'))
+    # Generate a path for the finished file
+    generated_file = 'generated_audio.mp3'
+    sample_path = path.join(directory, generated_file)
+    # Retrieve audio segments
+    time1 = perf_counter()
+    intro_sample = getAudioFile(podcast, "Test_Intro.mp3")
+    expo_sample = getAudioFile(podcast, "Test_Expo.mp3")
+    outro_sample =  getAudioFile(podcast, "Test_Outro.mp3")
+    time2 = perf_counter()
+    print(f"time to load s3 narration:\t\t {time2 - time1}")
+
+    # Append them with 1s of crossfade
+    time1 = perf_counter()
+    finished_sample = createAudioFile([intro_sample, expo_sample, outro_sample],  sample_path, 1000)
+    time2 = perf_counter()
+    print(f"time to assemble narration:\t\t {time2 - time1}")
+
+    # Return location to generated file
+    return(generated_file)
+
+
 
 '''
 time1 = perf_counter()
