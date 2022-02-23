@@ -55,11 +55,6 @@ def createAudioFile(audioSegments, filepath, cf):
     return(combined_audio.export(filepath, format="mp3"))
 
 
-def testConfiguration():
-    print(environ.get('AWS_S3_KEY_ID'))
-    print(environ.get('AWS_S3_SECRET_ACCESS_KEY'))
-    return()
-
 def buildPodcast(podcast, length, directory):
 
     # Generate a path for the finished file
@@ -81,6 +76,25 @@ def buildPodcast(podcast, length, directory):
 
     # Return location to generated file
     return(generated_file)
+
+def listS3FolderItems(bucket, folder, length=1):
+    s3 = boto3.resource(
+        's3',
+        aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
+        aws_secret_access_key = environ.get('AWS_S3_SECRET_ACCESS_KEY'),
+        region_name = 'us-west-2'
+    )
+
+    # Get a list of items in specified folders
+    bucket = s3.Bucket(name=bucket)
+    filtered_bucket = bucket.objects.filter(Prefix=folder)
+
+    # Choose random items from list based on length
+    select_files = random.sample(list(filtered_bucket), length)
+    
+    # Use list comprehension to return key of objects in list
+    return([x.key for x in select_files])
+
 
 
 
