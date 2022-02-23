@@ -5,12 +5,12 @@ import os
 from flask import jsonify, request
 from flask_marshmallow import Marshmallow
 from app.models import Podcast, PodcastSchema
-from app.audio import getAudioFile, buildPodcast
+from app.audio import getAudioFile, buildPodcast, listS3FolderItems
 
 ### Test Config access
 @app.route('/testconfig')
 def testConfig():
-    getAudioFile("Test_Outro.mp3")
+    print(listS3FolderItems("dreamworld-podcasts", "desert-night/Intro"))
     return jsonify({
         'success': 'Data deleted.'
     })
