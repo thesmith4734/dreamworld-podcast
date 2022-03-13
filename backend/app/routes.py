@@ -5,12 +5,12 @@ import os
 from flask import jsonify, request
 from flask_marshmallow import Marshmallow
 from app.models import Podcast, PodcastSchema
-from app.audio import getAudioFile, buildPodcast, listS3FolderItems
+from app.audio import getAudioFiles, buildPodcast, getRandomAudiofiles
 
 ### Test Config access
-@app.route('/testconfig')
+@app.route('/api/testfunction')
 def testConfig():
-    print(listS3FolderItems("dreamworld-podcasts", "desert-night/Intro"))
+    print(getRandomAudiofiles("dreamworld-podcasts", "Exer"))
     return jsonify({
         'success': 'Data deleted.'
     })
@@ -94,6 +94,7 @@ def assemblePodcast(id):
 
     ### Call assembler with specified podcast
     finished_audio = buildPodcast('desert-night', 5, app.config['SLEEPCAST_DIRECTORY'])
-
+    print(finished_audio)
+    print(app.config['SLEEPCAST_DIRECTORY'])
     # Return finished audio
     return send_from_directory(app.config['SLEEPCAST_DIRECTORY'], finished_audio, conditional=True)
