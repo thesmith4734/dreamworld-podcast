@@ -2,6 +2,7 @@ from pydub import AudioSegment
 from os import environ, path
 import random
 import boto3
+import botocore.exceptions
 import io
 from time import perf_counter
 from mutagen.mp3 import MP3
@@ -31,21 +32,22 @@ def mixAmbiance(narration_audio, ambiance_path, start_padding=5000, end_padding=
 
 
 ### Retrieve an mp3 file from S3 and return it as an AudioSegment
-def getAudioFile(podcast, filename):
+def getAudioFiles(podcast, file_list):
     s3 = boto3.client(
         's3',
         aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
         aws_secret_access_key = environ.get('AWS_S3_SECRET_ACCESS_KEY'),
         region_name = 'us-west-2')
 
-    ### Get file as object
-    audio_file = s3.get_object(
-        Bucket='dreamworld-podcasts',
-        Key=f'{podcast}/{filename}')
+    print(file_list)
 
-    ### Convert s3 object to Pydub file
-    s3_obj_data = io.BytesIO(audio_file["Body"].read())
-    return(AudioSegment.from_file(s3_obj_data))
+    ### Get all s3 audio files based on input list
+    s3_file_list = [s3.get_object(
+        Bucket='dreamworld-podcasts',
+        Key=f'{filename}') for filename in file_list]
+
+    ### Convert s3 objects to Pydub files then return them
+    return([AudioSegment.from_file(io.BytesIO(audio_file["Body"].read())) for audio_file in s3_file_list])
 
 ### Given an ordered list of audtio segments, append them with some amount of crossfade
 def createAudioFile(audioSegments, filepath, cf):
@@ -60,40 +62,60 @@ def buildPodcast(podcast, length, directory):
     # Generate a path for the finished file
     generated_file = 'generated_audio.mp3'
     sample_path = path.join(directory, generated_file)
+
+    exercise_folder = 'Exercises'
+
+    # Build list of audio segments
+    intro = getRandomAudiofiles('dreamworld-podcasts', podcast + '/Intro')
+    exercise = getRandomAudiofiles('dreamworld-podcasts', exercise_folder)
+    expo = getRandomAudiofiles('dreamworld-podcasts', podcast + '/Expo', 2)
+    outro = getRandomAudiofiles('dreamworld-podcasts', podcast + '/Outro')
+    podcast_segments = intro + exercise + expo + outro
+    print(podcast_segments)
+
     # Retrieve audio segments
     time1 = perf_counter()
-    intro_sample = getAudioFile(podcast, "Test_Intro.mp3")
-    expo_sample = getAudioFile(podcast, "Test_Expo.mp3")
-    outro_sample =  getAudioFile(podcast, "Test_Outro.mp3")
+    audio_files = getAudioFiles(podcast, podcast_segments)
     time2 = perf_counter()
     print(f"time to load s3 narration:\t\t {time2 - time1}")
 
     # Append them with 1s of crossfade
     time1 = perf_counter()
-    finished_sample = createAudioFile([intro_sample, expo_sample, outro_sample],  sample_path, 1000)
+    finished_sample = createAudioFile(audio_files,  sample_path, 1000)
     time2 = perf_counter()
     print(f"time to assemble narration:\t\t {time2 - time1}")
 
     # Return location to generated file
     return(generated_file)
 
-def listS3FolderItems(bucket, folder, length=1):
-    s3 = boto3.resource(
-        's3',
-        aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
-        aws_secret_access_key = environ.get('AWS_S3_SECRET_ACCESS_KEY'),
-        region_name = 'us-west-2'
-    )
+# Return filename of a random s3 object or objects based on a certain prefix
+def getRandomAudiofiles(bucket, folder, length=1):
+    try:
+        s3 = boto3.resource(
+            's3',
+            aws_access_key_id = environ.get('AWS_S3_KEY_ID'),
+            aws_secret_access_key = environ.get('AWS_S3_SECRET_ACCESS_KEY'),
+            region_name = 'us-west-2'
+        )
 
-    # Get a list of items in specified folders
-    bucket = s3.Bucket(name=bucket)
-    filtered_bucket = bucket.objects.filter(Prefix=folder)
+        # Get a list of items in specified folders
+        bucket = s3.Bucket(name=bucket)
+        filtered_bucket = bucket.objects.filter(Prefix=folder)
+        
+        # Filter only items that end in .mp3 then choose random items from list based on length
+        select_files = random.sample([x.key for x in filtered_bucket if x.key.endswith('.mp3')], length)
+        
+        # Use list comprehension to return key of objects in list
+        return(select_files)
 
-    # Choose random items from list based on length
-    select_files = random.sample(list(filtered_bucket), length)
+    except botocore.exceptions as err:
+        print("Error with s3 connection")
+    except ValueError as err:
+        print("Error: Not enough files to sample")
     
-    # Use list comprehension to return key of objects in list
-    return([x.key for x in select_files])
+    else:
+        raise
+
 
 
 
