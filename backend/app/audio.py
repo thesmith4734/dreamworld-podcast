@@ -112,8 +112,7 @@ def getRandomAudiofiles(bucket, folder, length=1):
         print("Error with s3 connection")
     except ValueError as err:
         print("Error: Not enough files to sample")
-    
-    else:
+    except:
         raise
 
 
