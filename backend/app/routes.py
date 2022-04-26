@@ -42,11 +42,18 @@ def listPodcasts():
     podschema = PodcastSchema(many=True)
     return(podschema.dumps(podcast))
 
+### Get Podcast by foldername
+@app.route('/api/podcast/<id>', methods=['GET'])
+def listPodcastByTitle(id):
+    podcast = Podcast.query.filter_by(s3_foldername=id).first()
+    podschema = PodcastSchema()
+    return(podschema.dumps(podcast))
+
 ### Get Singular Podcast by title
 @app.route('/api/podcast', methods=['GET'])
 def listPodcast():
     if request.form['title']:
-        podcast = Podcast.query.filter_by(title=request.form['title'])
+        podcast = Podcast.query.filter_by(title=request.form['title']).first()
         podschema = PodcastSchema()
         return(podschema.dumps(podcast))
     else:
@@ -54,7 +61,7 @@ def listPodcast():
             'error': 'Bad Request',
             'message': 'Title not given'
         }), 400
-
+ 
 ### Update a podcast
 @app.route('/api/podcast/<id>', methods=['PUT'])
 def updatePodcast(id):
