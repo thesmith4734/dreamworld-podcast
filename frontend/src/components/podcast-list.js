@@ -3,19 +3,19 @@ import { makeStyles } from '@material-ui/core/styles';
 import PodcastTitle from './podcast-title';
 
 const useStyles = makeStyles((theme) => ({
-    card: {
+    listbg: {
         marginBottom: theme.spacing(7),
         marginTop: theme.spacing(7),
-        width: '90%',
-        height: '100px',
+        paddingTop: theme.spacing(4),
+        paddingBottom: theme.spacing(4),
+        width: '50%',
         backgroundColor: theme.palette.secondary.main,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderRadius: '10px',
+        margin: 'auto',
     }
 }));
 
-export default function TestComponent() {
+export default function PodcastList() {
     const classes = useStyles();
     const [podcastList, setPodcastList] = useState([]);
 
@@ -40,7 +40,7 @@ export default function TestComponent() {
 
     
     return (
-        <div>
+        <div className= {classes.listbg}>
             {podcastList.map((data, key) => (
                 <PodcastTitle key={key} title={data.title} url={data.s3_foldername}/>
             ))}
