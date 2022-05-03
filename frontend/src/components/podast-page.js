@@ -42,12 +42,10 @@ export default function PodcastPage(props) {
 
     return(
         <div className={classes.background}>
-            {podcastData.map((data, key) => (
-                <div>
-                    <h2 key={key}>{ data.title }</h2>
-                    <h2 key={key}>{ data.description }</h2>
-                </div>
-            ))}
+            <div>
+                <h2>{ podcastData.title }</h2>
+                <h2>{ podcastData.description }</h2>
+            </div>
         </div>
     )
 }
